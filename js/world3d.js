@@ -433,7 +433,7 @@ const World3D = (() => {
   function winterDark() {
     if (G.season !== 3) return 0;
     const L = seasonLen();
-    return 0.85 * Math.min(clamp(G.seasonT / 4, 0, 1), clamp((L - G.seasonT) / 3, 0, 1));
+    return 0.5 * Math.min(clamp(G.seasonT / 4, 0, 1), clamp((L - G.seasonT) / 3, 0, 1));
   }
 
   function sync(dt) {
@@ -539,9 +539,8 @@ const World3D = (() => {
     // caches (hidden by snow in winter unless sniffed)
     const sniffA = G.sniffT > 0 ? Math.min(1, G.sniffT / 0.8) : 0;
     for (const c of G.caches) {
-      const visible = s !== 3;
       const near = Math.abs(c.x - p.x) < 340;
-      if (visible || (sniffA > 0 && near)) {
+      {
         const m = take(pool('mound', () => {
           const tw = mesh(geo.twig, M.bark); tw.position.set(0.12, 0.35, 0); tw.rotation.z = -0.4;
           return group(mesh(geo.mound, M.mound, true, true), tw);
@@ -549,6 +548,10 @@ const World3D = (() => {
         m.position.set(wx(c.x), s === 3 ? 0.05 : 0, PLAY_Z - 0.2);
         m.scale.set(0.9 + Math.min(c.n, 6) * 0.12, 1, 1);
         m.children[0].material = s === 3 ? M.snow : M.mound;
+        if (s === 3) { // an acorn pokes out of the snow so you can always find your food
+          const a = take(pool('acorn', acornMesh));
+          a.position.set(wx(c.x), 0.45 + Math.abs(Math.sin(G.t * 3 + c.x)) * 0.15, PLAY_Z + 0.3); a.rotation.set(0, 0, 0.3); a.scale.setScalar(1.4);
+        }
       }
       if (sniffA > 0 && near) {
         const r = take(pool('ring', () => { const o = mesh(new THREE.TorusGeometry(0.85, 0.07, 4, 12), M.ring, false); o.rotation.x = -Math.PI / 2; return o; }));

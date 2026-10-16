@@ -30,12 +30,6 @@
     <button data-a="right" aria-label="Move right">▶</button>
   </div>
   <div class="tgroup tright">
-    <button data-a="sniff" aria-label="Sniff" class="sm">
-      <svg viewBox="0 0 40 30"><ellipse cx="12" cy="17" rx="10" ry="7" fill="#c9692b" stroke="#2b1d14" stroke-width="2"/><circle cx="21" cy="16" r="2.5" fill="#3a2416"/><path d="M26 10q2-4 4 0M31 12q2-4 4 0M36 14q2-4 4 0" stroke="#b07ad8" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
-    </button>
-    <button data-a="eat" aria-label="Eat" class="sm">
-      <svg viewBox="0 0 30 30"><ellipse cx="15" cy="18" rx="7" ry="9" fill="#c98a3f" stroke="#2b1d14" stroke-width="2"/><path d="M6 12a9 6 0 0 1 18 0z" fill="#7a4b22" stroke="#2b1d14" stroke-width="2"/><path d="M15 6l2-4" stroke="#2b1d14" stroke-width="2"/></svg>
-    </button>
     <button data-a="dig" aria-label="Bury or dig">▼</button>
     <button data-a="jump" aria-label="Jump">▲</button>
   </div>
@@ -61,29 +55,25 @@
 <!-- how to play -->
 <div id="how" class="overlay hidden">
   <div class="card wide">
-    <h2>Survive three winters</h2>
-    <p class="lead">Bury acorns in <b>Fall</b>. Dig them up in <b>Winter</b> to eat. Any cache you never dig up sprouts in
-      <b>Spring</b> into an oak, which drops more acorns the next Fall. The seasons change the rules:</p>
+    <h2>How to play</h2>
+    <p class="lead">You're a squirrel. <b>Keep your food bar full and live through 3 winters.</b></p>
     <div class="seasons">
-      <div class="s s0"><canvas data-season="0" width="96" height="96"></canvas><div><h4>Spring</h4>
-        Forgotten caches sprout into saplings. Rain floods the stream, so you have to swim. Mushrooms pop up. <b>Hawks</b> hunt: hide under leaves or in your den.</div></div>
-      <div class="s s1"><canvas data-season="1" width="96" height="96"></canvas><div><h4>Summer</h4>
-        Berries everywhere, but the <b>sun makes you hungry faster</b>, so stay in the shade. Hawks hunt more often. The stream dries up.</div></div>
-      <div class="s s2"><canvas data-season="2" width="96" height="96"></canvas><div><h4>Fall</h4>
-        Oaks drop acorns. Your cheeks hold 3, so <b>bury the rest</b>. Wind gusts push you around. <b>Blue jays</b> raid any cache they can see, so chase them off. Geese mean winter is near.</div></div>
-      <div class="s s3"><canvas data-season="3" width="96" height="96"></canvas><div><h4>Winter</h4>
-        Nothing grows. <b>Snow hides your caches</b>, so remember where they are or sniff for them. The ground is frozen: you can only dig up, not bury.
-        Warm up in your den. The stream freezes into slippery ice.</div></div>
+      <div class="s s2"><canvas data-season="2" width="96" height="96"></canvas><div><h4>1. Fall: collect and bury</h4>
+        Acorns fall from the trees. Run over them to grab them, then press <kbd>↓</kbd> to bury them.</div></div>
+      <div class="s s3"><canvas data-season="3" width="96" height="96"></canvas><div><h4>2. Winter: dig and eat</h4>
+        Nothing grows. Go to your buried acorns (the snowy mounds) and press <kbd>↓</kbd> to dig one up and eat it.</div></div>
+      <div class="s s0"><canvas data-season="0" width="96" height="96"></canvas><div><h4>3. Spring: trees grow</h4>
+        Every acorn you <b>didn't</b> dig up grows into a new tree. More trees means more acorns next fall.</div></div>
+      <div class="s s1"><canvas data-season="1" width="96" height="96"></canvas><div><h4>4. Summer: berries and hawks</h4>
+        Run into bushes to eat berries. If a red ring appears under you, a hawk is coming, so stand under a tree.</div></div>
     </div>
     <div class="controls">
       <span><kbd>←</kbd><kbd>→</kbd> move</span>
-      <span><kbd>↑</kbd>/<kbd>Space</kbd> jump · swim</span>
-      <span><kbd>↓</kbd> bury / dig up</span>
-      <span><kbd>E</kbd> eat acorn</span>
-      <span><kbd>Q</kbd> sniff</span>
+      <span><kbd>↑</kbd> or <kbd>Space</kbd> jump</span>
+      <span><kbd>↓</kbd> bury / dig</span>
       <span><kbd>Esc</kbd> pause</span>
     </div>
-    <p class="note">The more you forget, the bigger the forest: more acorns, more shade, more cover from hawks. But forget too much and you'll starve.</p>
+    <p class="note">You eat acorns from your cheeks automatically when you get hungry. The line at the top of the screen always tells you what to do right now.</p>
     <div class="buttons"><button id="btnHowBack" class="primary">Got it</button></div>
   </div>
 </div>

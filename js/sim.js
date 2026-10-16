@@ -9,13 +9,14 @@
 // down, the ground is at y = GROUND. world3d.js turns this into a 3D diorama.
 // ---------------------------------------------------------------------------
 const DIFFS = {
-  easy: { hunger: 0.7, season: 48, hawk: 1.5, jay: 1.5, drop: 0.8, cold: 0.7, startHunger: 90 },
-  normal: { hunger: 1.2, season: 40, hawk: 1.0, jay: 0.9, drop: 1.0, cold: 1.15, startHunger: 80 },
-  hard: { hunger: 1.6, season: 34, hawk: 0.7, jay: 0.6, drop: 1.25, cold: 1.6, startHunger: 70 },
+  easy: { hunger: 0.6, season: 34, hawk: 1.6, drop: 0.75, startHunger: 100 },
+  normal: { hunger: 0.85, season: 30, hawk: 1.2, drop: 0.9, startHunger: 90 },
+  hard: { hunger: 1.2, season: 26, hawk: 0.8, drop: 1.1, startHunger: 75 },
 };
 const GOAL_WINTERS = 3;
-const MAX_CARRY = 3;
-const ACORN_FOOD = 24, BERRY_FOOD = 8, MUSHROOM_FOOD = 12;
+const MAX_CARRY = 5;
+const ACORN_FOOD = 25, BERRY_FOOD = 10, MUSHROOM_FOOD = 12;
+const AUTO_EAT_BELOW = 35; // a carried acorn is eaten automatically when food drops this low
 
 let state = 'title'; // title | playing | paused | over
 let G = null;
@@ -59,7 +60,7 @@ function newGame(attract, tutorial) {
   if (tutorial) { G.tutorial = { step: -1, t: 0, done: false }; G.firstAcorn = true; G.player.x = 420; G.player.startX = 420; G.camX = clamp(420 - W / 2, 0, WORLD_W - W); }
 }
 
-const seasonLen = () => G.attract ? 5 : (G.season === 3 ? G.d.season * (1 + 0.12 * (G.year - 1)) : G.d.season);
+const seasonLen = () => G.attract ? 5 : G.d.season;
 const inStream = x => x > STREAM_X0 && x < STREAM_X1;
 const groundAt = x => (inStream(x) && G.season !== 3 ? STREAM_BED : GROUND);
 const waterSurface = () => (G.season === 0 ? GROUND + 6 : G.season === 2 ? GROUND + 34 : null);
@@ -165,7 +166,7 @@ function update(dt) {
   if (G.winPending > 0) { G.winPending -= dt; if (G.winPending <= 0) endGame(true); }
   else if (p.hunger <= 0) {
     p.hunger = 0; G.dying = 1.8;
-    G.deathReason = G.season === 3 && p.warmth <= 0 ? 'froze' : 'starved';
+    G.deathReason = 'starved';
     Sound.play('lose');
   }
 }
@@ -254,8 +255,8 @@ function updatePlayer(dt) {
   if (Input.hit('dig') && p.onGround && p.digT <= 0) {
     const c = nearestCache(p.x, 26);
     const soil = winter ? '#ffffff' : '#6e4a2c';
-    if (winter) {               // frozen ground: you can only dig up, not bury
-      if (c && p.carry < MAX_CARRY) digUp(c);
+    if (winter) {               // frozen ground: you can only dig up (and eat), not bury
+      if (c) digUp(c);
       else { Sound.play('scrabble'); puff(p.x + p.face * 10, GROUND - 2, 6, 'snow', '#ffffff', 90); p.digT = 0.2; }
     } else if (streamHere) {
       Sound.play('nope');
@@ -265,32 +266,14 @@ function updatePlayer(dt) {
       digUp(c);
     } else { Sound.play('scrabble'); puff(p.x + p.face * 10, GROUND - 2, 5, 'dirt', soil, 80); p.digT = 0.15; }
   }
-  if (Input.hit('eat')) {
-    if (p.carry > 0 && p.hunger < 99) {
-      p.carry--; p.hunger = Math.min(100, p.hunger + ACORN_FOOD); p.eatT = 0.45;
-      G.stats.eaten++; G.tut.ate = true; Sound.play('eat');
-      puff(p.x + p.face * 18, p.y - 18, 5, 'crumb', '#c98a3f', 60);
-      floater(p.x, p.y - 50, '+' + ACORN_FOOD, '#ffe7b0');
-    } else Sound.play('nope');
-  }
-  if (Input.hit('sniff')) {
-    if (G.sniffCd <= 0) {
-      G.sniffT = 3.5; G.sniffCd = 4; p.hunger -= 1; G.tut.sniffed = true; Sound.play('sniff');
-      for (const c of G.caches) if (Math.abs(c.x - p.x) < 340) for (let i = 0; i < 4; i++) part({ x: c.x + rand(-8, 8), y: GROUND - rand(0, 10), vx: rand(-10, 10), vy: rand(-50, -30), life: rand(1.5, 3), max: 3, kind: 'scent', col: '#c79bff', size: rand(3, 5), rot: rand(0, 6), vr: 0 });
-    } else Sound.play('nope');
-  }
+  // eating is automatic: when you get hungry you munch an acorn from your cheeks
+  if (p.carry > 0 && p.hunger < AUTO_EAT_BELOW && p.eatT <= 0) { p.carry--; eatAcorn(p.x, p.y - 50); }
 
   // ---- needs ----
   let m = G.d.hunger;
-  if (s === 1 && !p.shaded) m *= 1.5;              // summer sun
-  if (winter) m *= 1.35 + 0.15 * (G.year - 1);      // winters get harsher
-  if (p.warmth <= 0) m *= 2.4;                      // freezing
-  if (p.inWater) m *= 1.4;
+  if (s === 1 && !p.shaded) m *= 1.3;              // summer sun
+  if (winter) m *= 1.3 + 0.1 * (G.year - 1);        // winter is the hungry season
   p.hunger -= m * dt;
-  if (winter) {
-    if (p.inDen) p.warmth = Math.min(100, p.warmth + 24 * dt);
-    else p.warmth = Math.max(0, p.warmth - 2.7 * G.d.cold * (G.bliz.dur > 0 ? 1.5 : 1) * dt);
-  } else p.warmth = Math.min(100, p.warmth + 30 * dt);
   p.hunger = Math.min(100, p.hunger);
 }
 
@@ -304,13 +287,21 @@ function bury() {
   Sound.play('bury');
   puff(p.x + p.face * 6, GROUND - 2, 8, 'dirt', '#6e4a2c', 90);
 }
+function eatAcorn(x, y) {
+  const p = G.player;
+  p.hunger = Math.min(100, p.hunger + ACORN_FOOD); p.eatT = 0.45;
+  G.stats.eaten++; Sound.play('eat');
+  puff(p.x + p.face * 18, p.y - 18, 5, 'crumb', '#c98a3f', 60);
+  floater(x, y, '+' + ACORN_FOOD, '#ffe7b0');
+}
 function digUp(c) {
   const p = G.player;
-  c.n--; p.carry++; p.digT = 0.3; G.stats.dug++;
+  c.n--; p.digT = 0.3; G.stats.dug++;
   if (c.n <= 0) G.caches.splice(G.caches.indexOf(c), 1);
   Sound.play('dig');
   puff(c.x, GROUND - 2, 10, G.season === 3 ? 'snow' : 'dirt', G.season === 3 ? '#ffffff' : '#6e4a2c', 110);
-  floater(c.x, GROUND - 45, '', '#fff', 'acorn');
+  if (G.season === 3) eatAcorn(c.x, GROUND - 50);   // winter: dig up and eat straight away
+  else { p.carry = Math.min(MAX_CARRY, p.carry + 1); floater(c.x, GROUND - 45, '', '#fff', 'acorn'); }
 }
 
 function spawnAcorn(x, y) {
@@ -400,7 +391,7 @@ function updateWorld(dt) {
 // ---- Spring/Summer: hawks hunt from above. Hide under leaves or in the den. ----
 function updateHawk(dt) {
   const p = G.player, s = G.season;
-  if (!G.hawk && (s === 0 || s === 1) && !G.tutorial) {
+  if (!G.hawk && s === 1 && !G.tutorial) {
     G.hawkT -= dt;
     if (G.hawkT <= 0 && G.seasonT > 3) spawnHawk();
   }
@@ -441,18 +432,17 @@ function spawnJay(target) {
 
 function hurtPlayer(fromX) {
   const p = G.player;
-  for (let i = 0; i < p.carry; i++) G.items.push({ type: 'acorn', x: p.x, y: p.y - 20, vx: rand(-160, 160), vy: rand(-380, -220), landed: false, rot: 0 });
-  p.carry = 0; p.hunger -= 12; p.inv = 1.6;
+  p.hunger -= 10; p.inv = 1.6;
   p.vx = (p.x >= fromX ? 1 : -1) * 320; p.vy = -320; p.onGround = false;
   G.shake = 10; G.stats.hits++;
   Sound.play('hit'); puff(p.x, p.y - 15, 12, 'feather', '#efe4cf', 160);
-  floater(p.x, p.y - 55, '-12', '#ffb0a0');
+  floater(p.x, p.y - 55, '-10', '#ffb0a0');
 }
 
 // ---- Fall: blue jays raid any cache they can see. Chase them off! ----
 function updateJay(dt) {
   const p = G.player;
-  if (!G.jay && G.season === 2 && G.caches.length && !G.tutorial) {
+  if (false && !G.jay) { // jays were cut to keep the game simple; kept for possible future use
     G.jayT -= dt;
     if (G.jayT <= 0) {
       const far = G.caches.filter(c => Math.abs(c.x - p.x) > 200);

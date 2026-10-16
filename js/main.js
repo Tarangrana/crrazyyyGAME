@@ -59,18 +59,16 @@ function endGame(won) {
   if (isBest) saveBest({ score, winters: G.winters, trees: s.sprouted });
   if (won) Sound.play('win');
   Sound.duck(true);
-  $('endTitle').textContent = won ? 'You made it through three winters!' : (G.deathReason === 'froze' ? 'Too cold, too hungry…' : 'The squirrel ran out of food…');
+  $('endTitle').textContent = won ? 'You made it through three winters!' : 'The squirrel ran out of food…';
   $('endSub').textContent = won
     ? `Every acorn you forgot became part of a forest of ${G.trees.length} trees.`
-    : (G.season === 3 ? 'Winter is long. Bury more in Fall, and remember where.' : 'Keep your belly full: berries in Summer, acorns in Fall.');
+    : (G.season === 3 ? 'Tip: bury more acorns in Fall so you have plenty to dig up in Winter.' : 'Tip: eat berries in Summer and grab every acorn in Fall.');
   const rows = [
     ['Winters survived', G.winters],
     ['Trees grown from forgotten acorns', s.sprouted],
     ['Acorns buried', s.buried],
     ['Acorns eaten', s.eaten],
     ['Berries eaten', s.berries],
-    ['Jays chased off', s.scared],
-    ['Acorns stolen by jays', s.stolen],
     ['Hawk dives dodged', s.dodged],
   ];
   $('endStats').innerHTML = rows.map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('') +
@@ -146,7 +144,7 @@ function buildSettings() {
   reset.onclick = () => { Settings.data.binds = cloneBinds(); Settings.save(); Sound.play('click'); buildSettings(); };
   box.appendChild(reset);
   const pad = document.createElement('p'); pad.className = 'note';
-  pad.textContent = 'Gamepads work too: stick/d-pad move, A jump, X dig, B eat, Y sniff, Start pause.';
+  pad.textContent = 'Gamepads work too: stick or d-pad to move, A to jump, X or B to bury/dig, Start to pause.';
   box.appendChild(pad);
 }
 

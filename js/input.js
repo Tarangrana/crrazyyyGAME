@@ -3,14 +3,13 @@
 // Settings persistence + remappable keyboard, gamepad and touch input.
 // ---------------------------------------------------------------------------
 
-const ACTIONS = ['left', 'right', 'jump', 'dig', 'eat', 'sniff', 'pause'];
+const ACTIONS = ['left', 'right', 'jump', 'dig', 'pause'];
 const ACTION_NAMES = {
-  left: 'Move left', right: 'Move right', jump: 'Jump / paddle', dig: 'Bury / dig up',
-  eat: 'Eat an acorn', sniff: 'Sniff for caches', pause: 'Pause',
+  left: 'Move left', right: 'Move right', jump: 'Jump / swim', dig: 'Bury / dig up', pause: 'Pause',
 };
 const DEFAULT_BINDS = {
   left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], jump: ['ArrowUp', 'KeyW', 'Space'],
-  dig: ['ArrowDown', 'KeyS'], eat: ['KeyE'], sniff: ['KeyQ'], pause: ['Escape', 'KeyP'],
+  dig: ['ArrowDown', 'KeyS', 'KeyE'], pause: ['Escape', 'KeyP'],
 };
 const cloneBinds = () => JSON.parse(JSON.stringify(DEFAULT_BINDS));
 
@@ -91,9 +90,7 @@ const Input = (() => {
       if (ax < -0.4 || b(14)) pad.left = true;
       if (ax > 0.4 || b(15)) pad.right = true;
       if (b(0) || b(12)) pad.jump = true;
-      if (b(2) || b(13)) pad.dig = true;
-      if (b(1)) pad.eat = true;
-      if (b(3)) pad.sniff = true;
+      if (b(1) || b(2) || b(13)) pad.dig = true;
       if (b(9)) pad.pause = true;
     }
   };

@@ -13,43 +13,21 @@ const scr = (x, y, z) => World3D.toScreen(x, y, z);
 function renderHUD() {
   ctx.setTransform(K, 0, 0, K, 0, 0);
   ctx.clearRect(0, 0, W, H);
-  if (G.jay && G.jay.ph === 'dig') { const s = scr(G.jay.x, GROUND - 52); drawAlert(s.x, s.y); }
-  drawSniffIcons();
   drawFloaters();
-  if (!G.attract && state === 'playing' && !G.tutorial) drawHint();
-  if (!G.attract) { drawHUD(); drawDenArrow(); drawBanner(); }
+  if (!G.attract && state === 'playing' && !G.tutorial) { drawFoodPointer(); drawHint(); }
+  if (!G.attract) { drawHUD(); drawGoalLine(); drawBanner(); }
   if (G.dying > 0) { ctx.fillStyle = `rgba(20,14,10,${0.5 * (1 - G.dying / 1.8)})`; ctx.fillRect(0, 0, W, H); }
 }
 
-function drawAlert(x, y) {
-  ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = OUT; ctx.lineWidth = 2;
-  circ(ctx, x, y, 12);
-  ctx.fillStyle = cb() ? '#e07a00' : '#d23a2a';
-  ctx.fillRect(x - 2, y - 7, 4, 9); circ(ctx, x, y + 5.5, 2.2, false);
-}
-
-function drawSniffIcons() {
-  if (G.sniffT <= 0) return;
-  const a = Math.min(1, G.sniffT / 0.8);
-  ctx.save(); ctx.globalAlpha = a;
-  for (const c of G.caches) {
-    if (Math.abs(c.x - G.player.x) > 340) continue;
-    const s = scr(c.x, GROUND - 46);
-    const n = Math.min(c.n, 6);
-    for (let i = 0; i < n; i++) drawAcorn(ctx, s.x - (n - 1) * 6 + i * 12, s.y + Math.sin(G.t * 4 + i) * 2, 0.9);
-  }
-  ctx.restore();
-}
-
 function drawFloaters() {
-  ctx.font = 'bold 17px "Trebuchet MS", "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 18px "Trebuchet MS", "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const f of G.floaters) {
     const s = scr(f.x, f.y);
     const y = s.y - f.t * 26, a = clamp(1.3 - f.t, 0, 1);
     ctx.globalAlpha = a;
     let x = s.x;
     if (f.icon) {
-      const ix = f.text ? x + 14 : x;
+      const ix = f.text ? x + 16 : x;
       if (f.icon === 'sapling') drawSaplingIcon(ctx, ix, y + 8, 0.9);
       else if (f.icon === 'acorn') drawAcorn(ctx, ix, y, 1.1);
       x -= 8;
@@ -62,7 +40,30 @@ function drawFloaters() {
   ctx.globalAlpha = 1;
 }
 
-// ---------- in-game picture hints (after the tutorial) ----------
+// a bouncing arrow over the nearest buried acorn in winter (or at the screen edge if it's off screen)
+function drawFoodPointer() {
+  if (G.season !== 3 || !G.caches.length) return;
+  const p = G.player;
+  const c = G.caches.slice().sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x))[0];
+  if (Math.abs(c.x - p.x) < 24) return;
+  const s = scr(c.x, GROUND - 70);
+  const bob = calm() ? 0 : Math.abs(Math.sin(G.t * 4)) * 8;
+  ctx.fillStyle = '#ffd84a'; ctx.strokeStyle = OUT; ctx.lineWidth = 2.5;
+  if (s.x > 20 && s.x < W - 20) {
+    const y = s.y - bob;
+    ctx.beginPath(); ctx.moveTo(s.x - 12, y - 14); ctx.lineTo(s.x + 12, y - 14); ctx.lineTo(s.x, y + 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else {
+    const left = s.x <= 20, x = left ? 34 : W - 34, y = 380;
+    rr(ctx, x - 22, y - 22, 44, 44, 10); ctx.fillStyle = 'rgba(255,248,232,.95)'; ctx.fill(); ctx.stroke();
+    drawAcorn(ctx, x + (left ? 5 : -5), y + 2, 1.3);
+    ctx.fillStyle = '#ffd84a'; ctx.beginPath();
+    if (left) { ctx.moveTo(x - 34 - bob * 0.5, y); ctx.lineTo(x - 24, y - 9); ctx.lineTo(x - 24, y + 9); }
+    else { ctx.moveTo(x + 34 + bob * 0.5, y); ctx.lineTo(x + 24, y - 9); ctx.lineTo(x + 24, y + 9); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+}
+
+// ---------- small picture bubbles over the squirrel ----------
 function bubble(x, y, items) {
   const widths = items.map(it => (it.key ? (it.key.length > 2 ? Math.max(30, it.key.length * 9 + 14) : 26) : 30));
   const w = widths.reduce((a, b) => a + b + 6, 0) + 12, h = 40;
@@ -77,44 +78,43 @@ function bubble(x, y, items) {
     const wd = widths[i], mx = cx + wd / 2;
     if (it.key) drawKeyCap(ctx, mx, cy, it.key);
     else if (it.pic === 'bury') { drawMound(ctx, mx, cy + 10, 1, [110, 74, 44]); drawAcorn(ctx, mx, cy - 6 + Math.sin(G.t * 5) * 3, 0.8); }
-    else if (it.pic === 'eat') { drawAcorn(ctx, mx - 6, cy, 0.8); ctx.fillStyle = OUT; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('→', mx + 6, cy); }
-    else if (it.pic === 'stomach') { ctx.fillStyle = '#e5483b'; circ(ctx, mx, cy, 7, false); ctx.fillStyle = '#fff'; ctx.fillRect(mx - 1, cy - 4, 2, 6); }
-    else if (it.pic === 'shadow') { ctx.fillStyle = 'rgba(20,10,10,.55)'; ell(ctx, mx, cy + 4, 13, 4, false); ctx.save(); ctx.translate(mx, cy - 7); ctx.scale(0.45, 0.45); drawHawk(ctx, 0, 0, G.t, false, 1); ctx.restore(); }
-    else if (it.pic === 'sniff') drawNoseIcon(ctx, mx - 5, cy + 2, 0.75);
+    else if (it.pic === 'eat') { drawAcorn(ctx, mx, cy, 1); }
     else if (it.pic === 'tree') drawTreeIcon(ctx, mx, cy + 13, 0.65);
-    else if (it.pic === 'den') drawHouseIcon(ctx, mx, cy + 6, 1);
-    else if (it.pic === 'flame') drawFlame(ctx, mx, cy, 0.9);
-    else if (it.pic === 'acorns') { drawAcorn(ctx, mx - 6, cy + 2, 0.75); drawAcorn(ctx, mx + 6, cy - 2, 0.75); }
-    else if (it.arrow) { ctx.fillStyle = OUT; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(it.arrow < 0 ? '◀' : '▶', mx, cy); }
     cx += wd + 6;
   });
 }
 
 function drawHint() {
   if (!Settings.data.hints || G.dying > 0) return;
-  const p = G.player, tut = G.tut, s = G.season;
+  const p = G.player, s = G.season;
   const sp = scr(p.x, p.y - 64);
   const x = sp.x, y = sp.y;
-  if (s === 3 && p.warmth < 45 && !p.inDen) { bubble(x, y, [{ arrow: DEN_X < p.x ? -1 : 1 }, { pic: 'den' }, { pic: 'flame' }]); return; }
-  if (G.hawk && G.hawk.ph !== 'leave' && !p.shaded) { bubble(x, y, [{ pic: 'shadow' }, { arrow: 1 }, { pic: 'tree' }]); return; }
-  if (s === 3 && !tut.sniffed && G.seasonT > 2) { bubble(x, y, [{ key: Input.label('sniff') }, { pic: 'sniff' }]); return; }
-  if (p.carry === MAX_CARRY && s !== 3 && G.stats.buried < 3) { bubble(x, y, [{ key: Input.label('dig') }, { pic: 'bury' }]); return; }
-  if (p.carry > 0 && p.hunger < 35) { bubble(x, y, [{ key: Input.label('eat') }, { pic: 'eat' }, { pic: 'stomach' }]); return; }
-  if (s === 3 && p.carry < MAX_CARRY && G.sniffT > 0 && nearestCache(p.x, 26)) bubble(x, y, [{ key: Input.label('dig') }, { pic: 'acorns' }]);
+  if (G.hawk && G.hawk.ph !== 'leave' && !p.shaded) { bubble(x, y, [{ pic: 'tree' }]); return; }
+  if (s === 3 && nearestCache(p.x, 26)) { bubble(x, y, [{ key: Input.label('dig') }, { pic: 'eat' }]); return; }
+  if (s !== 3 && p.carry > 0 && G.stats.buried < 6 && !inStream(p.x)) bubble(x, y, [{ key: Input.label('dig') }, { pic: 'bury' }]);
 }
 
-function drawDenArrow() {
-  if (G.season !== 3) return;
-  const s = scr(DEN_X, GROUND - 30);
-  if (s.x > -20 && s.x < W + 20) return;
-  const left = s.x < 0, x = left ? 30 : W - 30, y = 360;
-  ctx.fillStyle = 'rgba(255,248,232,.92)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2;
-  rr(ctx, x - 20, y - 20, 40, 40, 10); ctx.fill(); ctx.stroke();
-  drawHouseIcon(ctx, x + (left ? 4 : -4), y + 6, 0.9);
-  ctx.fillStyle = OUT; ctx.beginPath();
-  if (left) { ctx.moveTo(x - 30, y); ctx.lineTo(x - 22, y - 7); ctx.lineTo(x - 22, y + 7); }
-  else { ctx.moveTo(x + 30, y); ctx.lineTo(x + 22, y - 7); ctx.lineTo(x + 22, y + 7); }
-  ctx.closePath(); ctx.fill();
+// ---------- "what do I do now?" line under the season wheel ----------
+const GOALS = [
+  { text: 'Your forgotten acorns grew into trees! Eat berries and mushrooms.' },
+  { text: 'Eat berries from bushes. Red ring = hawk: stand under a tree!' },
+  { text: 'Grab falling acorns, then press', key: 'dig', after: 'to bury them for winter.' },
+  { text: 'Find your buried acorns and press', key: 'dig', after: 'to dig and eat.' },
+];
+function drawGoalLine() {
+  if (G.tutorial) return;
+  const g = GOALS[G.season];
+  ctx.font = 'bold 17px "Trebuchet MS", "Segoe UI", sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const keyLbl = g.key ? Input.label(g.key) : '';
+  const keyW = g.key ? (keyLbl.length > 2 ? Math.max(30, keyLbl.length * 9 + 14) : 26) : 0;
+  const t1 = ctx.measureText(g.text).width, t2 = g.after ? ctx.measureText(g.after).width : 0;
+  const total = t1 + (g.key ? keyW + 16 + t2 : 0);
+  const w = total + 56, x0 = W / 2 - w / 2, y = 128;
+  facetPanel(x0, y - 18, w, 36);
+  seasonIcon(ctx, G.season, x0 + 22, y, 9);
+  let x = x0 + 40;
+  ctx.fillStyle = OUT; ctx.fillText(g.text, x, y); x += t1 + 8;
+  if (g.key) { drawKeyCap(ctx, x + keyW / 2, y, keyLbl); x += keyW + 8; ctx.fillStyle = OUT; ctx.font = 'bold 17px "Trebuchet MS", "Segoe UI", sans-serif'; ctx.textAlign = 'left'; ctx.fillText(g.after, x, y); }
 }
 
 // ---------- HUD ----------
@@ -125,8 +125,8 @@ function barColor(f) {
 // faceted panel to echo the low-poly world
 function facetPanel(x, y, w, h) {
   ctx.save();
-  ctx.fillStyle = 'rgba(255,248,232,.9)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2.5;
-  const c = 10;
+  ctx.fillStyle = 'rgba(255,248,232,.92)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2.5;
+  const c = Math.min(10, h / 3);
   ctx.beginPath(); ctx.moveTo(x + c, y); ctx.lineTo(x + w - c, y); ctx.lineTo(x + w, y + c); ctx.lineTo(x + w, y + h - c);
   ctx.lineTo(x + w - c, y + h); ctx.lineTo(x + c, y + h); ctx.lineTo(x, y + h - c); ctx.lineTo(x, y + c); ctx.closePath();
   ctx.fill(); ctx.stroke();
@@ -135,44 +135,26 @@ function facetPanel(x, y, w, h) {
 function drawHUD() {
   const p = G.player, s = G.season;
   ctx.textBaseline = 'middle';
-  facetPanel(12, 12, 262, 104);
+  facetPanel(12, 12, 262, 82);
   const low = p.hunger < 25;
   const wob = low && !calm() ? Math.sin(G.t * 20) * 2 : 0;
-  drawAcorn(ctx, 32 + wob, 34, 1.2);
-  const bar = (x, y, w, h, f, col, pulse) => {
-    ctx.fillStyle = 'rgba(43,29,20,.18)'; rr(ctx, x, y, w, h, 3); ctx.fill();
-    ctx.fillStyle = col; ctx.globalAlpha = pulse ? 0.65 + 0.35 * Math.sin(G.t * 10) : 1;
-    if (f > 0.01) { rr(ctx, x, y, Math.max(h, w * f), h, 3); ctx.fill(); }
-    ctx.globalAlpha = 1; ctx.strokeStyle = OUT; ctx.lineWidth = 2; rr(ctx, x, y, w, h, 3); ctx.stroke();
-  };
-  bar(50, 26, 170, 16, p.hunger / 100, barColor(p.hunger / 100), low);
-  let mx = 236;
-  if (s === 1 && !p.shaded) { drawSunIcon(ctx, mx, 34, 9, '#ffb81f'); mx += 22; }
-  if (s === 3) { drawSnowflake(ctx, mx, 34, 8, '#3d6fa8', 2); mx += 22; }
-  const winter = s === 3;
-  ctx.globalAlpha = winter ? 1 : 0.35;
-  drawFlame(ctx, 32, 62, 1);
-  bar(50, 55, 170, 13, p.warmth / 100, winter ? (p.warmth < 30 ? (cb() ? '#f06d1f' : '#e5483b') : '#ff9a3d') : '#c9b8a0', winter && p.warmth < 30);
-  ctx.globalAlpha = 1;
-  if (winter && p.inDen) drawHouseIcon(ctx, 238, 64, 0.8);
+  ctx.font = 'bold 13px "Trebuchet MS", sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = OUT;
+  ctx.fillText('FOOD', 24, 32);
+  ctx.fillStyle = 'rgba(43,29,20,.18)'; rr(ctx, 70, 23, 190, 18, 3); ctx.fill();
+  ctx.fillStyle = barColor(p.hunger / 100); ctx.globalAlpha = low ? 0.65 + 0.35 * Math.sin(G.t * 10) : 1;
+  if (p.hunger > 1) { rr(ctx, 70 + wob, 23, Math.max(18, 190 * p.hunger / 100), 18, 3); ctx.fill(); }
+  ctx.globalAlpha = 1; ctx.strokeStyle = OUT; ctx.lineWidth = 2; rr(ctx, 70, 23, 190, 18, 3); ctx.stroke();
+  ctx.font = 'bold 13px "Trebuchet MS", sans-serif'; ctx.fillStyle = OUT; ctx.fillText('CHEEKS', 24, 68);
   for (let i = 0; i < MAX_CARRY; i++) {
-    const x = 34 + i * 30, y = 94;
-    ctx.fillStyle = i < p.carry ? '#fff1d6' : 'rgba(43,29,20,.12)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2;
+    const x = 98 + i * 30, y = 68;
+    ctx.fillStyle = i < p.carry ? '#fff1d6' : 'rgba(43,29,20,.1)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2;
     circ(ctx, x, y, 12);
     if (i < p.carry) drawAcorn(ctx, x, y + 1, 1.05);
   }
-  const nx = 150, ny = 94;
-  ctx.globalAlpha = G.sniffCd > 0 ? 0.45 : 1;
-  drawNoseIcon(ctx, nx, ny, 0.8);
-  ctx.globalAlpha = 1;
-  if (G.sniffCd > 0) { ctx.strokeStyle = '#b07ad8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(nx + 4, ny, 15, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - G.sniffCd / 4)); ctx.stroke(); }
-  ctx.fillStyle = OUT; ctx.textAlign = 'center';
-  ctx.font = 'bold 11px "Trebuchet MS", sans-serif';
-  if (!Input.touchMode) { ctx.fillText(Input.label('sniff'), nx + 26, ny + 1); ctx.fillText(Input.label('eat'), 120, ny + 1); }
 
   // season wheel
-  const cx = W / 2, cy = 50, r = 34;
-  ctx.fillStyle = 'rgba(255,248,232,.9)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2.5;
+  const cx = W / 2, cy = 52, r = 34;
+  ctx.fillStyle = 'rgba(255,248,232,.92)'; ctx.strokeStyle = OUT; ctx.lineWidth = 2.5;
   ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + Math.PI / 8; ctx.lineTo(cx + Math.cos(a) * (r + 10), cy + Math.sin(a) * (r + 10)); } ctx.closePath(); ctx.fill(); ctx.stroke();
   for (let i = 0; i < 4; i++) {
     const a0 = -Math.PI / 2 + i * Math.PI / 2, a1 = a0 + Math.PI / 2;
@@ -187,28 +169,22 @@ function drawHUD() {
   ctx.strokeStyle = OUT; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(an) * (r + 4), cy + Math.sin(an) * (r + 4)); ctx.stroke();
   ctx.strokeStyle = '#fffaf0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(an) * (r + 2), cy + Math.sin(an) * (r + 2)); ctx.stroke();
   ctx.fillStyle = OUT; circ(ctx, cx, cy, 4, false);
-  ctx.font = 'bold 14px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center';
-  const label = G.tutorial ? 'Tutorial' : `Year ${G.year}`;
-  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,248,232,.95)';
-  ctx.strokeText(label, cx, cy + r + 22); ctx.fillStyle = OUT; ctx.fillText(label, cx, cy + r + 22);
 
-  // goal tracker
+  // goal tracker: winters survived + trees
   const gx = W - 200;
-  facetPanel(gx, 12, 188, 74);
+  facetPanel(gx, 12, 188, 82);
+  ctx.font = 'bold 13px "Trebuchet MS", sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = OUT;
+  ctx.fillText(G.tutorial ? 'TUTORIAL' : (G.endless ? 'WINTERS SURVIVED' : 'SURVIVE 3 WINTERS'), gx + 12, 28);
   const goal = G.endless ? Math.max(GOAL_WINTERS, G.winters + 1) : GOAL_WINTERS;
   const shown = Math.min(goal, 5);
   for (let i = 0; i < shown; i++) {
-    const x = gx + 24 + i * 34, y = 34;
-    ctx.fillStyle = i < G.winters ? '#dbe9fa' : 'rgba(43,29,20,.08)'; ctx.strokeStyle = OUT; ctx.lineWidth = 1.5; circ(ctx, x, y, 13);
-    drawSnowflake(ctx, x, y, 9, i < G.winters ? '#2f5f9e' : 'rgba(43,29,20,.3)', 2);
+    const x = gx + 24 + i * 30, y = 54;
+    ctx.fillStyle = i < G.winters ? '#dbe9fa' : 'rgba(43,29,20,.08)'; ctx.strokeStyle = OUT; ctx.lineWidth = 1.5; circ(ctx, x, y, 12);
+    drawSnowflake(ctx, x, y, 8, i < G.winters ? '#2f5f9e' : 'rgba(43,29,20,.3)', 2);
   }
-  ctx.font = 'bold 16px "Trebuchet MS", sans-serif';
-  if (G.endless) { ctx.fillStyle = OUT; ctx.textAlign = 'left'; ctx.fillText('×' + G.winters, gx + 24 + shown * 34 - 8, 34); }
-  drawTreeIcon(ctx, gx + 24, 80, 0.6, '#3fa34a');
-  ctx.textAlign = 'left'; ctx.fillStyle = OUT;
-  ctx.fillText('×' + G.trees.length, gx + 40, 66);
-  drawMound(ctx, gx + 112, 72, 2, [110, 74, 44]);
-  ctx.fillText('×' + G.caches.length, gx + 128, 66);
+  drawTreeIcon(ctx, gx + 132, 70, 0.55, '#3fa34a');
+  ctx.font = 'bold 16px "Trebuchet MS", sans-serif'; ctx.fillStyle = OUT;
+  ctx.fillText('×' + G.trees.length, gx + 146, 58);
 }
 
 function drawBanner() {
@@ -216,7 +192,7 @@ function drawBanner() {
   if (t > 3) return;
   const a = t < 0.4 ? t / 0.4 : t > 2.4 ? (3 - t) / 0.6 : 1;
   ctx.save(); ctx.globalAlpha = clamp(a, 0, 1);
-  const y = 160 + (calm() ? 0 : (1 - clamp(t / 0.4, 0, 1)) * -20);
+  const y = 200 + (calm() ? 0 : (1 - clamp(t / 0.4, 0, 1)) * -20);
   ctx.font = 'bold 50px "Trebuchet MS", "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const name = SEASON_NAMES[b.season].toUpperCase();
   const w = ctx.measureText(name).width;
