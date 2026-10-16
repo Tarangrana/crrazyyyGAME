@@ -48,8 +48,8 @@ The changes between seasons are part of the game: geese honk a few seconds befor
 
 - **Playable loop:** a clear goal (3 snowflakes = 3 winters survived), a way to lose (hunger hits zero), a score, a win screen, endless mode and a best-score record.
 - **Theme in the mechanics:** all four seasons play differently, choices in Fall carry into Winter and the next year, the yearly cycle has to be planned around, and movement and visibility change with the weather.
-- **Consistent art & audio:** a **low-poly 3D diorama** with every model built in code: jittered, flat-shaded icosahedron foliage, faceted hills, pines, a hollow-stump den, the squirrel, hawk and jays. It has real lighting and shadows. Each season has its own palette and light that blend at the change, and winter nights are lit only by the den's fire and a glow around the squirrel. All music and sound effects are synthesized live with the Web Audio API. Each season has its own generative score and ambience (spring rain and birds, summer cicadas, fall breeze, winter wind).
-- **Runs on site:** plain HTML/JS with no dependencies, no network and no build. It also works offline from a USB stick.
+- **Consistent art & audio:** a **low-poly 3D diorama** with every model built in code: jittered, flat-shaded icosahedron foliage, faceted hills, pines, a hollow-stump den, the squirrel and the hawk. It has real lighting and shadows. Each season has its own palette and light that blend at the change, and winter is a dim, snowy night. All music and sound effects are synthesized live with the Web Audio API. Each season has its own generative score and ambience (spring rain and birds, summer cicadas, fall breeze, winter wind).
+- **Runs on site:** plain HTML/JS with three.js bundled in the repo: no install, no network, no build. It also works offline from a USB stick.
 - **Bonus: all four seasons play differently.** See the table above.
 - **Bonus: season changes are gameplay.** Geese warning, first snow, spring sprouting, fall maturing.
 - **Bonus: art and audio made during the event.** 100% of the art and sound is procedural code written for this game.
