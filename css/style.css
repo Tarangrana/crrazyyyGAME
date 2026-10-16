@@ -13,7 +13,39 @@ body {
   font-family: var(--font); color: var(--ink);
   -webkit-user-select: none; user-select: none; touch-action: none;
 }
-#game { display: block; background: #e4f6ff; image-rendering: auto; }
+#stage { position: relative; --s: 1; background: #cfe6f2; overflow: hidden; }
+#gl, #hud { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud { pointer-events: none; }
+
+/* tutorial coach panel, scaled with the stage */
+#tut {
+  position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%);
+  width: min(94%, calc(560px * var(--s) + 40px)); z-index: 4;
+  background: rgba(255, 248, 232, .96); border: 3px solid var(--ink);
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  padding: calc(10px * var(--s) + 4px) calc(16px * var(--s) + 4px);
+  font-size: max(12px, calc(17px * var(--s))); line-height: 1.35;
+  animation: tutIn .35s ease-out;
+}
+#tut.hidden { display: none; }
+body.touch #tut { bottom: auto; top: 30%; }
+@keyframes tutIn { from { transform: translate(-50%, 10px); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #tut { animation: none; } }
+.tutbar { height: 6px; background: rgba(43,29,20,.15); margin-bottom: 8px; }
+#tutBar { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+.tuthead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#tutStep { font-weight: bold; font-size: .82em; text-transform: uppercase; letter-spacing: .06em; color: var(--accent2); }
+#tutText { margin: 6px 0 4px; }
+#tutText kbd { font-size: .85em; }
+#tut button.small { font-size: max(11px, calc(13px * var(--s))); padding: 3px 10px; margin: 0; box-shadow: 0 2px 0 var(--ink); }
+.tutbtns { display: flex; gap: 8px; justify-content: flex-end; }
+.tutbtns button { font-size: max(12px, calc(15px * var(--s))); padding: 5px 14px; }
+.tutbtns:has(> :not(.hidden)) { margin-top: 6px; }
+button.glow { position: relative; }
+button.glow::after {
+  content: "New? Start here"; position: absolute; top: -14px; right: -10px; background: #ffd84a; color: var(--ink);
+  border: 2px solid var(--ink); font-size: 11px; padding: 1px 6px; border-radius: 8px; white-space: nowrap;
+}
 
 .overlay {
   position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;

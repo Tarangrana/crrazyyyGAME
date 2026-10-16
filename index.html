@@ -9,7 +9,19 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<canvas id="game" width="960" height="540" aria-label="Forgotten Acorns game"></canvas>
+<div id="stage">
+  <canvas id="gl" aria-label="Forgotten Acorns game"></canvas>
+  <canvas id="hud" width="960" height="540" aria-hidden="true"></canvas>
+  <div id="tut" class="hidden" role="status" aria-live="polite">
+    <div class="tutbar"><div id="tutBar"></div></div>
+    <div class="tuthead"><span id="tutStep"></span><button id="tutSkip" class="small">Skip tutorial</button></div>
+    <p id="tutText"></p>
+    <div class="tutbtns">
+      <button id="tutNext" class="primary hidden">Next</button>
+      <button id="tutStart" class="primary hidden">Start the real game</button>
+    </div>
+  </div>
+</div>
 
 <!-- touch controls (shown on touch devices while playing) -->
 <div id="touch" class="hidden">
@@ -38,6 +50,7 @@
     <canvas id="story" width="1280" height="240" aria-hidden="true"></canvas>
     <div class="buttons">
       <button id="btnPlay" class="primary">Play</button>
+      <button id="btnTutorial">Tutorial</button>
       <button id="btnHow">How to play</button>
       <button id="btnSettings">Settings</button>
     </div>
@@ -96,6 +109,14 @@
   </div>
 </div>
 
+<!-- no WebGL -->
+<div id="nogl" class="overlay hidden">
+  <div class="card">
+    <h2>3D isn't available here</h2>
+    <p class="sub">This browser or device has WebGL turned off. Try a recent Chrome, Edge, Firefox or Safari, or enable hardware acceleration in the browser settings.</p>
+  </div>
+</div>
+
 <!-- end -->
 <div id="end" class="overlay hidden">
   <div class="card" id="endCard">
@@ -110,10 +131,14 @@
   </div>
 </div>
 
+<script src="vendor/three.min.js"></script>
 <script src="js/art.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/input.js"></script>
-<script src="js/game.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/world3d.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/tutorial.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

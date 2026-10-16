@@ -20,9 +20,10 @@ function refreshBest() {
 
 function applyAudioSettings() { Sound.setVolumes(Settings.data.music, Settings.data.sfx); }
 
-function startGame() {
+function startGame(tutorial) {
   Sound.init(); applyAudioSettings();
-  newGame(false);
+  newGame(false, !!tutorial);
+  Tutorial.show(false);
   state = 'playing'; Input.gameActive = true;
   show(null);
   Sound.startMusic(G.season);
@@ -32,15 +33,17 @@ function startGame() {
 function toTitle() {
   newGame(true);
   state = 'title'; Input.gameActive = false;
-  Sound.duck(false);
+  Sound.duck(false); Tutorial.show(false);
   show('title'); refreshBest(); updateTouch();
 }
 function pauseGame() {
   if (state !== 'playing') return;
   state = 'paused'; Input.gameActive = false; Sound.duck(true); show('pause'); updateTouch();
+  if (G.tutorial) Tutorial.show(false);
 }
 function resumeGame() {
   state = 'playing'; Input.gameActive = true; Sound.duck(false); show(null); updateTouch();
+  if (G.tutorial && G.tutorial.step >= 0) Tutorial.show(true);
   if (document.activeElement) document.activeElement.blur();
 }
 
@@ -78,7 +81,8 @@ function endGame(won) {
 }
 
 // ---------- buttons ----------
-$('btnPlay').onclick = () => { Sound.play('click'); startGame(); };
+$('btnPlay').onclick = () => { Sound.init(); Sound.play('click'); startGame(!Tutorial.isDone()); };
+$('btnTutorial').onclick = () => { Sound.init(); Sound.play('click'); startGame(true); };
 $('btnHow').onclick = () => { Sound.init(); Sound.play('click'); show('how'); };
 $('btnHowBack').onclick = () => { Sound.play('click'); show('title'); };
 $('btnSettings').onclick = () => { Sound.init(); Sound.play('click'); settingsBack = 'title'; buildSettings(); show('settings'); };
@@ -160,7 +164,7 @@ for (const b of document.querySelectorAll('#touch [data-a]')) {
   b.addEventListener('pointercancel', release);
   b.addEventListener('pointerleave', release);
 }
-if (isTouch) Input.touchMode = true;
+if (isTouch) { Input.touchMode = true; document.body.classList.add('touch'); }
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
 
@@ -168,12 +172,32 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 for (const cv of document.querySelectorAll('canvas[data-season]')) drawSeasonCardIcon(cv, +cv.dataset.season);
 drawStory($('story'));
 
+// ---------- layout: the 3D view, the HUD and the tutorial panel share one 16:9 stage ----------
+function resize() {
+  const s = Math.min(innerWidth / W, innerHeight / H);
+  const cw = Math.floor(W * s), ch = Math.floor(H * s);
+  const stage = $('stage');
+  stage.style.width = cw + 'px'; stage.style.height = ch + 'px';
+  stage.style.setProperty('--s', s.toFixed(3));
+  const dpr = window.devicePixelRatio || 1;
+  K = clamp(s * dpr, 1, 2.5);
+  hudCanvas.width = Math.round(W * K); hudCanvas.height = Math.round(H * K);
+  World3D.resize(cw, ch, Math.min(2, dpr));
+}
+addEventListener('resize', resize);
+
 // ---------- main loop ----------
+let glOk = true;
+try { World3D.init($('gl')); } catch (e) { glOk = false; console.error(e); }
+if (!glOk) show('nogl');
+resize();
 newGame(true);
 refreshBest();
+$('btnTutorial').classList.toggle('glow', !Tutorial.isDone());
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (window.__manual) { requestAnimationFrame(frame); return; } // automated tests step the game themselves
   Input.poll();
   if (state === 'playing') {
     if (Input.hit('pause')) pauseGame();
@@ -182,14 +206,14 @@ function frame(now) {
     if (Input.hit('pause')) resumeGame();
   } else if (state === 'title') {
     update(dt);
-    if (Input.hit('jump') && !$('title').classList.contains('hidden') && document.activeElement === document.body) startGame();
   }
   Sound.tick();
-  render();
+  if (glOk) World3D.sync(dt);
+  renderHUD();
   Input.endFrame();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
 // small hook used by automated smoke tests
-window.__fa = { get G() { return G; }, get state() { return state; }, startGame, advanceSeason, endGame };
+window.__fa = { get G() { return G; }, get state() { return state; }, startGame, advanceSeason, endGame, glOk };
